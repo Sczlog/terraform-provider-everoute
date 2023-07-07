@@ -1,7 +1,7 @@
-部署一个 everoute 服务，不关联集群，部署于指定集群上
+部署一个 everoute 服务，关联集群，部署于指定集群上。
 
 一个简单的 variable file 配置样例如下：
-```hcl
+```terraform
 cloudtower = {
   server   = "192.168.30.163"
   username = "username"
@@ -19,4 +19,15 @@ cluster_config = {
   subnet_mask = "255.255.240.0"
   gateway     = "192.168.16.1"
 }
+
+associated_cluster_config = [
+  {
+    name  = "cluster-1"
+    vdses = ["vds-id-1"]
+  },
+  {
+    name  = "cluster-2"
+    vdses = []
+  }
+]
 ```
