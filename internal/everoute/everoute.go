@@ -17,22 +17,25 @@ type Client struct {
 	Api     *apiclient.Cloudtower
 }
 
-func NewClient(username string, password string, server string) (*Client, error) {
+func NewClient(username string, password string, server string, token string) (*Client, error) {
 	client, err := dgql.NewClient(fmt.Sprintf("http://%s/api/", server))
 	if err != nil {
 		return nil, err
 	}
-	loginResp, _, err := client.Mutation(context.Background(), "login", map[string]interface{}{
-		"data": map[string]interface{}{
-			"username": username,
-			"password": password,
-			"source":   "LOCAL",
-		},
-	}, nil)
-	if err != nil {
-		return nil, err
+	if token == "" {
+		loginResp, _, err := client.Mutation(context.Background(), "login", map[string]interface{}{
+			"data": map[string]interface{}{
+				"username": username,
+				"password": password,
+				"source":   "LOCAL",
+			},
+		}, nil)
+		if err != nil {
+			return nil, err
+		}
+		token = loginResp.Get("login.token").String()
 	}
-	token := loginResp.Get("login.token").String()
+
 	client.DefaultHeaders["Authorization"] = token
 
 	transport := httptransport.New(server, "/v2/api", []string{"http"})

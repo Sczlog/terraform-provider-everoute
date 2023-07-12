@@ -32,6 +32,7 @@ type Model struct {
 	Username         types.String `tfsdk:"username"`
 	Password         types.String `tfsdk:"password"`
 	CloudtowerServer types.String `tfsdk:"cloudtower_server"`
+	Token            types.String `tfsdk:"token"`
 }
 
 func (p *EverouteProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -54,6 +55,10 @@ func (p *EverouteProvider) Schema(ctx context.Context, req provider.SchemaReques
 				MarkdownDescription: "Cloudtower server url, if not configured, use env CLOUDTOWER_SERVER.",
 				Optional:            true,
 			},
+			"token": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Token for tower authentication, if not configured, will try to login with username and password.",
+			},
 		},
 	}
 }
@@ -72,29 +77,38 @@ func (p *EverouteProvider) Configure(ctx context.Context, req provider.Configure
 	var user string
 	var password string
 	var server string
-	if data.Username.IsNull() || data.Username.IsUnknown() {
-		user = os.Getenv("CLOUDTOWER_USER")
+	var token string
+	if data.Token.IsNull() || data.Token.IsUnknown() {
+		token = os.Getenv("CLOUDTOWER_TOKEN")
+	} else {
+		token = data.Token.ValueString()
+	}
+	if token == "" {
+		if data.Username.IsNull() || data.Username.IsUnknown() {
+			user = os.Getenv("CLOUDTOWER_USER")
+		} else {
+			user = data.Username.ValueString()
+		}
 		if user == "" {
 			missingFields = append(missingFields, "username")
 		}
-	} else {
-		user = data.Username.ValueString()
-	}
-	if data.Password.IsNull() || data.Username.IsUnknown() {
-		password = os.Getenv("CLOUDTOWER_PASSWORD")
+		if data.Password.IsNull() || data.Username.IsUnknown() {
+			password = os.Getenv("CLOUDTOWER_PASSWORD")
+		} else {
+			password = data.Password.ValueString()
+		}
 		if password == "" {
 			missingFields = append(missingFields, "password")
 		}
-	} else {
-		password = data.Password.ValueString()
 	}
+
 	if data.CloudtowerServer.IsNull() || data.CloudtowerServer.IsUnknown() {
 		server = os.Getenv("CLOUDTOWER_SERVER")
-		if server == "" {
-			missingFields = append(missingFields, "cloudtower_server")
-		}
 	} else {
 		server = data.CloudtowerServer.ValueString()
+	}
+	if server == "" {
+		missingFields = append(missingFields, "cloudtower_server")
 	}
 	if len(missingFields) > 0 {
 		resp.Diagnostics.AddError(
@@ -107,7 +121,7 @@ func (p *EverouteProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	client, err := everoute.NewClient(user, password, server)
+	client, err := everoute.NewClient(user, password, server, token)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
