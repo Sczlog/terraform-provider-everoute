@@ -33,3 +33,12 @@ website/vendor
 
 # Keep windows files with windows line endings
 *.winfile eol=crlf
+
+# example variables file
+example.tfvars
+.terraform.lock.hcl
+
+# local test ground
+playground/
+
+.vscode
